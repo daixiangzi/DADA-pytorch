@@ -14,6 +14,6 @@ python3 train.py
 Default Set:config.py  
 # Results  
 Best Acc  
-|Method |  400 per class |  600 per class  | 800 per class  | 1000 per class  |
+|Method | 400 per class | 600 per class | 800 per class | 1000 per class |
 |-------|:-----:|:-----:|:-----:|:-----:|
  |DADA | 61.7 | 66.4 | 69.9 | 72.4 |
