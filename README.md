@@ -18,4 +18,6 @@ Best Acc
 |Method | 400 | 600 | 800 | 1000 |
 |-------|:-----:|:-----:|:-----:|:-----:|
  |DADA | 61.7 | 66.4 | 69.9 | 72.4 |
- |DADA_Aug | - | - | - | - |
+ |DADA_augmented | - | - | - | - |
+ ## Notice
+ i remove weight_norm,because it cause bad performance,when i add weight_norm.  
