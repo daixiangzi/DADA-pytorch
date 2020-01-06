@@ -20,4 +20,5 @@ Best Acc
  |DADA | 63.0 | 67.6 | 71.2 | 73.3 |
  |DADA_augmented | - | - | - | - |
  ## Notice
+ DADA_augmented result will be released later  
  i remove weight_norm,because it cause bad performance,when i add weight_norm.  

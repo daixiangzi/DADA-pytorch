@@ -32,7 +32,6 @@ class _G(nn.Module):
 
                 self.main4 = nn.Sequential( #batch,3,32,32
                 nn.ConvTranspose2d(138,3,4,2,1,bias=False),
-                nn.BatchNorm2d(3),
 		nn.Tanh()
 		)
 	def forward(self,inputs,gen_y):
@@ -52,35 +51,44 @@ class _D(nn.Module):
         def __init__(self,num_classes):
                 super(_D,self).__init__()
                 self.main = nn.Sequential(
-                        Weight_norm(nn.Conv2d(3, 96, 3, 1, 1, bias=False),name='weight'), #32*32
+                        nn.Conv2d(3, 96, 3, 1, 1, bias=False), #32*32
+                        #nn.BatchNorm2d(96),
                         nn.LeakyReLU(0.2),
-                       Weight_norm(nn.Conv2d(96, 96, 3, 1, 1, bias=False),name='weight'), #32*32
+                        nn.Conv2d(96, 96, 3, 1, 1, bias=False), #32*32
+                        #nn.BatchNorm2d(96),
                         nn.LeakyReLU(0.2),
 
-                        Weight_norm(nn.Conv2d(96, 96, 3, 2, 1, bias=False),name='weight'), #16*16
+                        nn.Conv2d(96, 96, 3, 2, 1, bias=False), #16*16
+                        #nn.BatchNorm2d(96),
                         nn.LeakyReLU(0.2),
                         nn.Dropout2d(p=0.5),
 
-                        Weight_norm(nn.Conv2d(96, 192, 3, 1, 1, bias=False),name='weight'), #16*16
+                        nn.Conv2d(96, 192, 3, 1, 1, bias=False), #16*16
+                        #nn.BatchNorm2d(192),
                         nn.LeakyReLU(0.2),
 
-                        Weight_norm(nn.Conv2d(192, 192, 3, 1, 1, bias=False),name='weight'), #16*16
+                        nn.Conv2d(192, 192, 3, 1, 1, bias=False), #16*16
+                        #nn.BatchNorm2d(192),
                         nn.LeakyReLU(0.2),
 
-                        Weight_norm(nn.Conv2d(192, 192, 3, 2, 1, bias=False),name='weight'), #8*8
+                        nn.Conv2d(192, 192, 3, 2, 1, bias=False), #8*8
+                        #nn.BatchNorm2d(192),
                         nn.LeakyReLU(0.2),
                         nn.Dropout2d(p=0.5),
 
-                        Weight_norm(nn.Conv2d(192, 192, 3, 1, 0, bias=False),name='weight'), #6*6
+                        nn.Conv2d(192, 192, 3, 1, 0, bias=False), #6*6
+                        #nn.BatchNorm2d(192),
                         nn.LeakyReLU(0.2),
 
-                        Weight_norm(nn.Conv2d(192, 192, 1, 1, 0, bias=False),name='weight'), #6*6
+                        nn.Conv2d(192, 192, 1, 1, 0, bias=False), #6*6
+                        #nn.BatchNorm2d(192),
                         nn.LeakyReLU(0.2),
-                        Weight_norm(nn.Conv2d(192, 192, 1, 1, 0, bias=False),name='weight'), #6*6
+                        nn.Conv2d(192, 192, 1, 1, 0, bias=False), #6*6
+                        #nn.BatchNorm2d(192),
                         nn.LeakyReLU(0.2),
                         )
                 self.main2 = nn.Sequential(
-                Weight_norm(nn.Linear(192,2*num_classes),name='weight')
+                    nn.Linear(192,2*num_classes)
                         )
         def forward(self,inputs,feature=False):
                 inputs = inputs+torch.normal(mean=torch.zeros((inputs.shape)),std=0.2).cuda()

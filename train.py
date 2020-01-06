@@ -36,11 +36,16 @@ def gen_minibatches(x,y,batch_size,shuffle=False):
 def weights_init(m):
     classname=m.__class__.__name__
     if classname.find('Conv2') != -1 or classname.find('ConvTranspose2d')!= -1:
-        nn.init.normal_(m.weight.data, 0.0, 0.05)
+        nn.init.normal_(m.weight.data,0.0,0.05)
     elif classname.find('BatchNorm') != -1:
-        nn.init.normal_(m.weight.data, 0.0, 0.05)
+        nn.init.normal_(m.weight.data, 1.0, 0.02)
         nn.init.constant_(m.bias.data, 0)
-
+    elif  classname.find('Linear') != -1:
+        nn.init.normal_(m.weight.data, 1.0, 0.05)
+        nn.init.constant_(m.bias.data, 0)
+def adjust_learning_rate(optimizer,decay):
+        for param_group in optimizer.param_groups:
+            param_group['lr'] *=decay
 opt = Config()
 os.environ['CUDA_VISIBLE_DEVICES'] = opt.gpu_id
 use_cuda = torch.cuda.is_available()
@@ -62,6 +67,9 @@ def main():
         os.mkdir(opt.logs)
     if not os.path.isdir(opt.data_dir):
         os.mkdir(opt.data_dir)
+    #record loss values
+    f = open('loss.txt','w')
+    loss_res = []
 
     # Data
     trainx, trainy = cifar10_data.load(opt.data_dir, subset='train')
@@ -96,9 +104,10 @@ def main():
     best_acc = 0.0
     weight_gen_loss = 0.0
     for epoch in range(opt.epochs):
-        D_loss,Train_acc = 0.0,0.0
+        D_loss,G_loss,Train_acc = 0.0,0.0,0.0
         if epoch == opt.G_epochs:
             weight_gen_loss = 1.0
+        # train Aug
         if epoch < opt.G_epochs:
             for x_batch, y_batch in gen_minibatches(trainx, trainy, batch_size=opt.train_batch_size,shuffle=True):
                 gen_y = torch.from_numpy(np.int32(np.random.choice(opt.num_classes, (y_batch.shape[0],)))).long()
@@ -109,8 +118,9 @@ def main():
                 Train_acc += train_acc
                 for j in range(2):
                     gen_y_ = y_batch
-                    genloss = T.train_batch_gen(x_batch,gen_y_,weight_gen_loss)
+                    G_loss += T.train_batch_gen(x_batch,gen_y_,weight_gen_loss)
         else:
+        # train Classifier
             for x_batch, y_batch in gen_minibatches(trainx, trainy, batch_size=opt.train_batch_size,shuffle=True):
                 gen_y = torch.from_numpy(np.int32(np.random.choice(opt.num_classes, (y_batch.shape[0],)))).long()
                 x_batch = torch.from_numpy(x_batch)
@@ -119,9 +129,12 @@ def main():
                 D_loss += d_loss
                 Train_acc += train_acc
         D_loss /= nr_batches_train
+        G_loss /= (nr_batches_train*2)
         Train_acc /= nr_batches_train
-    # test
+        # test
         test_acc = 0.0
+        if epoch >opt.G_epochs and epoch % 100 ==0:
+            adjust_learning_rate(optimizerD,0.1)
         for x_batch, y_batch in gen_minibatches(testx, testy, batch_size=opt.test_batch_size,shuffle=False):
             x_batch = torch.from_numpy(x_batch)
             y_batch = torch.from_numpy(y_batch).long()
@@ -129,16 +142,19 @@ def main():
         test_acc /= nr_batches_test
         if test_acc >best_acc:
             best_acc = test_acc
-            #save gen img
-        T.save_png(opt.save_img,epoch)
+        #save gen img
+        if epoch<=opt.G_epochs: 
+            T.save_png(opt.save_img,epoch)
         if (epoch+1)%(opt.fre_print)==0:
-            print("Iteration %d, D_loss = %.4f,train acc = %.4f, test acc = %.4f,best acc = %.4f" % (epoch,D_loss,Train_acc, test_acc,best_acc))        
+            print("Iteration %d, D_loss = %.4f,G_loss = %.4f,train acc = %.4f, test acc = %.4f,best acc = %.4f,lr = %.8f" % (epoch,D_loss,G_loss,Train_acc, test_acc,best_acc,optimizerD.param_groups[0]['lr']))
+            loss_res.append("Iteration %d, D_loss = %.4f,G_loss = %.4f,train acc = %.4f, test acc = %.4f,best acc = %.4f,lr = %.8f \n" % (epoch,D_loss,G_loss,Train_acc, test_acc,best_acc,optimizerD.param_groups[0]['lr']))        
         #viso
         writer.add_scalar('train/D_loss',D_loss,epoch)
-        #writer.add_scalar('train/un_loss_supervised',total_unlab,epoch)
-        #writer.add_scalar('train/gen_loss',total_gen,epoch)
+        writer.add_scalar('train/G_loss',G_loss,epoch)
         writer.add_scalar('train/acc',Train_acc,epoch)
         writer.add_scalar('test/acc',test_acc,epoch)
+    f.writelines(loss_res)
+    f.close()
 
 
 if __name__ == '__main__':
