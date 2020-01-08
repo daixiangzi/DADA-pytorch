@@ -23,6 +23,5 @@ Best Acc
 # Train process of Gen img in 200 epochs(DADA)  
 ** one row represent one class (100 fixed noise)**  
 ![image](./img/result.gif)  
- ## Notice
- DADA_augmented result will be released later  
+ ## Notice  
  i remove weight_norm,because it cause bad performance,when i add weight_norm.  
