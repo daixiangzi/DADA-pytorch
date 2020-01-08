@@ -9,6 +9,7 @@ python3.5
 pytorch 1.1.0  
 cuda8.0  
 torchvision  
+Keras
 # Run
 python3 train.py  
 Default Set:config.py  
