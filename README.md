@@ -19,7 +19,7 @@ Best Acc
 |Method | 400 | 600 | 800 | 1000 |
 |-------|:-----:|:-----:|:-----:|:-----:|
  |DADA | 63.0 | 67.6 | 71.2 | 73.3 |
- |DADA_augmented | - | - | - | - |
+ |DADA_augmented | 69.9 | 74.1 | 76.0 | 79.8 |
 # Train process of Gen img in 200 epochs(DADA)  
 ** one row represent one class (100 fixed noise)**  
 ![image](./img/result.gif)  
