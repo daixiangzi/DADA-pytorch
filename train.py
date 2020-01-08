@@ -23,6 +23,7 @@ from Nets import _G,_D,Train
 import numpy as np
 from PIL import Image
 import torchvision.utils as vutils
+from keras.preprocessing.image import ImageDataGenerator
 def gen_minibatches(x,y,batch_size,shuffle=False):
     assert len(x) == len(y), "Training data size don't match"
     if shuffle:
@@ -59,6 +60,12 @@ torch.manual_seed(opt.seed)
 if use_cuda:
     torch.cuda.manual_seed_all(opt.seed)
 
+aug_params = dict(data_format='channels_first',rotation_range=20.,width_shift_range=0.1,height_shift_range=0.1,horizontal_flip=True)
+# data Aug
+if opt.aug:
+    datagen = ImageDataGenerator(**aug_params)
+else:
+    datagen = ImageDataGenerator(data_format='channels_first')
 
 def main():
     if not os.path.isdir(opt.save_img):
@@ -98,6 +105,9 @@ def main():
     np.random.shuffle(ids)
     trainx = x_data[ids]
     trainy = y_data[ids]
+
+    datagen.fit(trainx)
+
     nr_batches_train = int(trainx.shape[0] / opt.train_batch_size)
     nr_batches_test = int(testx.shape[0] / opt.test_batch_size)
     # Train
@@ -105,9 +115,10 @@ def main():
     weight_gen_loss = 0.0
     for epoch in range(opt.epochs):
         D_loss,G_loss,Train_acc = 0.0,0.0,0.0
+        index = 0
         if epoch == opt.G_epochs:
             weight_gen_loss = 1.0
-        # train Aug
+        # train G
         if epoch < opt.G_epochs:
             for x_batch, y_batch in gen_minibatches(trainx, trainy, batch_size=opt.train_batch_size,shuffle=True):
                 gen_y = torch.from_numpy(np.int32(np.random.choice(opt.num_classes, (y_batch.shape[0],)))).long()
@@ -120,18 +131,21 @@ def main():
                     gen_y_ = y_batch
                     G_loss += T.train_batch_gen(x_batch,gen_y_,weight_gen_loss)
         else:
-        # train Classifier
-            for x_batch, y_batch in gen_minibatches(trainx, trainy, batch_size=opt.train_batch_size,shuffle=True):
+            # train Classifier
+            for x_batch, y_batch in datagen.flow(trainx, trainy, batch_size=opt.train_batch_size):
+                index+=1
                 gen_y = torch.from_numpy(np.int32(np.random.choice(opt.num_classes, (y_batch.shape[0],)))).long()
                 x_batch = torch.from_numpy(x_batch)
                 y_batch = torch.from_numpy(y_batch).long()
                 d_loss,train_acc = T.train_batch_disc(x_batch, y_batch, gen_y,weight_gen_loss)
                 D_loss += d_loss
                 Train_acc += train_acc
+                if index == nr_batches_train:
+                    break
         D_loss /= nr_batches_train
         G_loss /= (nr_batches_train*2)
         Train_acc /= nr_batches_train
-        # test
+    # test
         test_acc = 0.0
         if epoch >opt.G_epochs and epoch % 100 ==0:
             adjust_learning_rate(optimizerD,0.1)
@@ -142,7 +156,7 @@ def main():
         test_acc /= nr_batches_test
         if test_acc >best_acc:
             best_acc = test_acc
-        #save gen img
+            #save gen img
         if epoch<=opt.G_epochs: 
             T.save_png(opt.save_img,epoch)
         if (epoch+1)%(opt.fre_print)==0:
